@@ -2,7 +2,7 @@
 
 Interaktiver Echtzeit-Reservierungsalgorithmus als Web-App zur Vorhersage von Kurs-No-Shows und dynamischen Freigabe zusätzlicher Kursplätze, kombiniert mit KI-generierten Handlungsempfehlungen via Anthropic API.
 
-**[➡ Live-Demo ansehen](#)**[➡ Live-Demo ansehen](https://lebensrauminmir-lenka.github.io/Live-Reservierungskonsole/)** <!-- Link aktiviert -->
+**[➡ Live-Demo ansehen](#)**(https://lebensrauminmir-lenka.github.io/Live-Reservierungskonsole/)** <!-- Link aktiviert -->
 
 ![Status](https://img.shields.io/badge/status-Proof--of--Concept-yellow)
 ![License](https://img.shields.io/badge/license-MIT-blue)
