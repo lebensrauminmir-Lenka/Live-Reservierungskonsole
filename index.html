@@ -1,582 +1,414 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GoalZone — Live-Reservierungskonsole</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GoalZone — Reservierungsalgorithmus</title>
 <style>
-  :root{
-    --bg:#0E1117;
-    --surface:#171B23;
-    --surface-2:#1F242E;
-    --line: #2A303C;
-    --text:#EDEFF3;
-    --muted:#8A93A3;
-    --lime:#C8FF4D;
-    --coral:#FF6B4A;
-    --teal:#35D0BA;
-    --lime-dim: rgba(200,255,77,0.12);
-    --coral-dim: rgba(255,107,74,0.12);
-    --teal-dim: rgba(53,208,186,0.12);
-  }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  body{
-    background:
-      radial-gradient(circle at 15% 0%, rgba(200,255,77,0.05), transparent 40%),
-      radial-gradient(circle at 85% 100%, rgba(255,107,74,0.05), transparent 40%),
-      var(--bg);
-    color:var(--text);
-    font-family:'Inter', sans-serif;
-    min-height:100vh;
-    padding: 28px 20px 60px;
-  }
-  .wrap{ max-width:1180px; margin:0 auto; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* ---------- HEADER ---------- */
-  header{
-    display:flex; justify-content:space-between; align-items:flex-end;
-    flex-wrap:wrap; gap:16px;
-    margin-bottom:26px;
-    border-bottom:1px solid var(--line);
-    padding-bottom:18px;
-  }
-  .brand{ display:flex; align-items:baseline; gap:12px; }
-  .brand .mark{
-    font-family:'Bebas Neue', sans-serif;
-    font-size:38px; letter-spacing:1px; line-height:1;
-    color:var(--text);
-  }
-  .brand .mark span{ color:var(--lime); }
-  .brand .sub{ color:var(--muted); font-size:13px; letter-spacing:.02em; }
-  .session-config{
-    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
-  }
-  .session-config label{
-    font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);
-    display:block; margin-bottom:4px;
-  }
-  .session-config .field{ display:flex; flex-direction:column; }
-  .session-config input, .session-config select{
-    background:var(--surface-2); border:1px solid var(--line); color:var(--text);
-    border-radius:6px; padding:7px 10px; font-family:'Space Mono', monospace; font-size:13px;
-    width:110px;
+  :root {
+    --bg: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-sec: #F5F5F5;
+    --text: #1A1915;
+    --text-sec: #6B6960;
+    --text-ter: #9B9A94;
+    --border: #E8E8E8;
+    --border-sec: #D0D0D0;
+    --radius-sm: 8px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --green: #1D9E75;
+    --green-dark: #0F6E56;
+    --green-bg: #E1F5EE;
+    --orange: #EF9F27;
+    --orange-bg: #FAEEDA;
+    --red: #E24B4A;
+    --red-bg: #FCEBEB;
+    --purple: #7F77DD;
+    --purple-bg: #EEEDFE;
+    --blue: #378ADD;
+    --blue-bg: #E6F1FB;
   }
 
-  /* ---------- SCOREBOARD ---------- */
-  .scoreboard{
-    background: linear-gradient(180deg, var(--surface), var(--surface-2));
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:22px 24px;
-    display:grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap:0;
-    margin-bottom:28px;
-    position:relative;
-    overflow:hidden;
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #FFFFFF;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem;
   }
-  .scoreboard::before{
-    content:"";
-    position:absolute; inset:0;
-    background: repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.015) 40px);
-    pointer-events:none;
-  }
-  .cell{
-    text-align:center;
-    padding: 4px 10px;
-    border-right:1px solid var(--line);
-  }
-  .cell:last-child{ border-right:none; }
-  .cell .label{
-    font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:8px;
-  }
-  .cell .value{
-    font-family:'Bebas Neue', sans-serif;
-    font-size:54px; line-height:1;
-    transition: color .3s ease;
-  }
-  .cell .value.lime{ color:var(--lime); text-shadow:0 0 22px rgba(200,255,77,.35); }
-  .cell .value.coral{ color:var(--coral); text-shadow:0 0 22px rgba(255,107,74,.3); }
-  .cell .value.teal{ color:var(--teal); }
-  .cell .hint{ font-family:'Space Mono', monospace; font-size:11px; color:var(--muted); margin-top:6px; }
 
-  /* ---------- MAIN GRID ---------- */
-  .grid{
-    display:grid;
-    grid-template-columns: 380px 1fr;
-    gap:22px;
-  }
-  @media (max-width:860px){ .grid{ grid-template-columns:1fr; } }
+  .app { max-width: 960px; margin: 0 auto; }
 
-  .panel{
-    background:var(--surface);
-    border:1px solid var(--line);
-    border-radius:14px;
-    padding:22px;
+  .header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 1.5rem; padding-bottom: 1rem;
+    border-bottom: 0.5px solid var(--border);
   }
-  .panel h2{
-    font-family:'Bebas Neue', sans-serif;
-    font-size:22px; letter-spacing:.03em;
-    margin-bottom:4px;
-  }
-  .panel .panel-sub{ color:var(--muted); font-size:12.5px; margin-bottom:18px; }
+  .header h1 { font-size: 20px; font-weight: 500; margin-bottom: 3px; }
+  .header p { font-size: 12px; color: var(--text-ter); }
+  .live-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--green); font-weight: 500; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
-  /* FORM */
-  .form-row{ margin-bottom:14px; }
-  .form-row label{
-    display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em;
-    color:var(--muted); margin-bottom:6px;
+  .section-label {
+    font-size: 11px; font-weight: 500; color: var(--text-ter);
+    text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
   }
-  .form-row input, .form-row select{
-    width:100%; background:var(--surface-2); border:1px solid var(--line); color:var(--text);
-    border-radius:8px; padding:10px 12px; font-family:'Inter'; font-size:14px;
+
+  .slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+
+  @media (max-width: 600px) {
+    .slot-grid { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr 1fr !important; }
+    .summary-row { grid-template-columns: 1fr 1fr !important; }
   }
-  .form-row input:focus, .form-row select:focus{ outline:none; border-color:var(--lime); }
-  .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .toggle-group{ display:flex; gap:8px; }
-  .toggle-btn{
-    flex:1; padding:10px; text-align:center; border-radius:8px; border:1px solid var(--line);
-    background:var(--surface-2); color:var(--muted); cursor:pointer; font-size:13px; font-weight:600;
-    transition:all .15s ease;
+
+  .slot-card {
+    border: 0.5px solid var(--border); border-radius: var(--radius-lg);
+    padding: 1rem 1.1rem; background: var(--bg-card);
+    cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
   }
-  .toggle-btn.active{ background:var(--lime-dim); border-color:var(--lime); color:var(--lime); }
+  .slot-card:hover { border-color: var(--border-sec); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .slot-card.selected { border: 2px solid var(--green); }
 
-  .predict-preview{
-    margin-top:18px; padding:16px; border-radius:10px; background:var(--surface-2);
-    border:1px solid var(--line);
+  .slot-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .slot-name { font-size: 13px; font-weight: 500; }
+  .slot-time { font-size: 11px; color: var(--text-ter); margin-top: 2px; }
+  .cat-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 500; white-space: nowrap; }
+
+  .bar-track { background: var(--bg-sec); border-radius: 4px; height: 6px; margin: 8px 0 6px; overflow: hidden; }
+  .bar-fill { height: 6px; border-radius: 4px; transition: width 0.4s ease; }
+
+  .slot-stats { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-sec); }
+  .slot-free { font-weight: 500; color: var(--green); }
+
+  .detail-panel {
+    border: 0.5px solid var(--border); border-radius: var(--radius-lg);
+    padding: 1.25rem; background: var(--bg-card); margin-bottom: 1rem;
   }
-  .predict-preview .pp-label{ font-size:11px; text-transform:uppercase; color:var(--muted); letter-spacing:.08em; margin-bottom:8px;}
-  .prob-bar-track{ height:8px; border-radius:4px; background:#12151b; overflow:hidden; margin-bottom:8px;}
-  .prob-bar-fill{ height:100%; border-radius:4px; transition: width .4s ease, background .4s ease; }
-  .pp-row{ display:flex; justify-content:space-between; align-items:center; font-family:'Space Mono', monospace; font-size:13px; }
-  .pp-status{ font-weight:700; }
 
-  .btn-primary{
-    margin-top:16px; width:100%; padding:13px; border:none; border-radius:9px;
-    background:var(--lime); color:#0E1117; font-weight:700; font-size:14px;
-    cursor:pointer; letter-spacing:.02em;
-    transition: transform .1s ease, box-shadow .2s ease;
+  .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+
+  .summary-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .sum-card { background: var(--bg-sec); border-radius: var(--radius-md); padding: 10px 12px; }
+  .sum-label { font-size: 11px; color: var(--text-sec); margin-bottom: 4px; }
+  .sum-val { font-size: 22px; font-weight: 500; }
+
+  .list-header {
+    display: grid; grid-template-columns: 28px 1fr 80px 90px 130px;
+    gap: 10px; padding: 0 10px 8px;
+    font-size: 10px; color: var(--text-ter);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    border-bottom: 0.5px solid var(--border); margin-bottom: 6px;
   }
-  .btn-primary:hover{ box-shadow:0 0 24px rgba(200,255,77,.35); transform:translateY(-1px); }
-  .btn-primary:active{ transform:translateY(0); }
-  .btn-primary:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none; transform:none; }
 
-  /* ROSTER */
-  .roster-list{ display:flex; flex-direction:column; gap:10px; max-height:640px; overflow-y:auto; padding-right:4px; }
-  .roster-list::-webkit-scrollbar{ width:6px; }
-  .roster-list::-webkit-scrollbar-thumb{ background:var(--line); border-radius:3px; }
-
-  .row{
-    display:grid;
-    grid-template-columns: 40px 1fr 130px 90px;
-    align-items:center;
-    gap:14px;
-    background:var(--surface-2);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:12px 14px;
-    animation: slideIn .3s ease;
+  .booking-list { display: flex; flex-direction: column; gap: 5px; max-height: 340px; overflow-y: auto; }
+  .booking-row {
+    display: grid; grid-template-columns: 28px 1fr 80px 90px 130px;
+    gap: 10px; align-items: center; padding: 8px 10px;
+    border-radius: var(--radius-md); font-size: 12px;
   }
-  @keyframes slideIn{ from{ opacity:0; transform:translateY(-6px);} to{opacity:1; transform:translateY(0);} }
-  .row.freed{ border-color: var(--lime); background: linear-gradient(90deg, var(--lime-dim), var(--surface-2) 30%); }
+  .booking-row.noshow  { background: var(--red-bg); }
+  .booking-row.attend  { background: var(--green-bg); }
+  .booking-row.neutral { background: var(--bg-sec); }
 
-  .row .avatar{
-    width:36px; height:36px; border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    font-family:'Space Mono', monospace; font-weight:700; font-size:13px;
-    background:var(--surface); border:1px solid var(--line); color:var(--muted);
+  .booking-name { font-weight: 500; color: var(--text); }
+  .booking-meta { color: var(--text-sec); font-size: 11px; margin-top: 1px; }
+
+  .prob-wrap { display: flex; align-items: center; gap: 6px; }
+  .prob-track { flex: 1; height: 5px; background: #FFFFFF; border-radius: 3px; overflow: hidden; }
+  .prob-fill { height: 5px; border-radius: 3px; }
+  .prob-pct { font-size: 11px; font-weight: 500; min-width: 34px; text-align: right; }
+
+  .status-tag { font-size: 10px; padding: 3px 8px; border-radius: 8px; font-weight: 500; text-align: center; white-space: nowrap; }
+
+  .add-panel {
+    border: 0.5px solid var(--border); border-radius: var(--radius-lg);
+    padding: 1.25rem; background: var(--bg-card);
   }
-  .row .meta .name{ font-weight:600; font-size:14px; }
-  .row .meta .tags{ font-size:11.5px; color:var(--muted); margin-top:2px; font-family:'Space Mono', monospace;}
-  .row .meta .ai-note{ font-size:12px; color:var(--muted); margin-top:5px; font-style:italic; min-height:14px; }
-  .row .meta .ai-note.loading{ opacity:.5; }
-  .row .meta .ai-note.lime-text{ color:var(--lime); font-style:normal; }
-  .row .meta .ai-note.coral-text{ color:var(--coral); font-style:normal; }
-
-  .row .probwrap{ text-align:right; }
-  .row .probwrap .pct{ font-family:'Space Mono', monospace; font-weight:700; font-size:15px; }
-  .row .probwrap .prob-bar-track{ margin-top:6px; margin-bottom:0; }
-
-  .chip{
-    justify-self:end;
-    font-size:11px; font-weight:700; padding:5px 10px; border-radius:999px;
-    text-align:center; white-space:nowrap;
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .form-field { display: flex; flex-direction: column; gap: 5px; }
+  .form-field label { font-size: 11px; color: var(--text-sec); }
+  .form-field input, .form-field select {
+    font-size: 13px; padding: 8px 10px;
+    border: 0.5px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--bg-sec); color: var(--text);
+    outline: none; transition: border-color 0.15s;
   }
-  .chip.confirmed{ background:var(--teal-dim); color:var(--teal); }
-  .chip.risk{ background:var(--coral-dim); color:var(--coral); }
+  .form-field input:focus, .form-field select:focus { border-color: var(--green); }
 
-  .empty{ color:var(--muted); font-size:13px; text-align:center; padding:30px 0; }
-
-  footer{
-    margin-top:26px; text-align:center; color:var(--muted); font-size:11.5px;
-    font-family:'Space Mono', monospace; letter-spacing:.02em;
+  .add-btn {
+    font-size: 13px; padding: 9px 22px; border-radius: var(--radius-md);
+    border: none; background: var(--green); color: #fff;
+    cursor: pointer; font-weight: 500; transition: background 0.15s;
   }
-  footer .dot{ color:var(--lime); }
+  .add-btn:hover { background: var(--green-dark); }
+
+  .empty { font-size: 13px; color: var(--text-ter); padding: 1.5rem 0; text-align: center; }
+
+  .ai-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; padding: 7px 14px; border-radius: var(--radius-md);
+    border: 0.5px solid var(--border-sec); background: var(--bg-sec); color: var(--text);
+    cursor: pointer; font-weight: 500; transition: background 0.15s;
+  }
+  .ai-btn:hover { background: var(--purple-bg); border-color: var(--purple); }
+  .ai-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .ai-box {
+    margin-top: 10px; padding: 10px 14px; border-radius: var(--radius-md);
+    background: var(--purple-bg); border: 0.5px solid var(--purple);
+    font-size: 12.5px; color: #4B4494; line-height: 1.5;
+  }
+  .ai-box.loading { color: var(--text-ter); background: var(--bg-sec); border-color: var(--border); font-style: italic; }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="app">
 
-  <header>
-    <div class="brand">
-      <div class="mark">GOAL<span>ZONE</span></div>
-      <div class="sub">Live-Reservierungskonsole · No-Show-Vorhersage</div>
+  <div class="header">
+    <div>
+      <h1>GoalZone — Reservierungsalgorithmus</h1>
+      <p>No-Show-Wahrscheinlichkeit pro Buchung · Echtzeit-Kapazitätsschätzung</p>
     </div>
-    <div class="session-config">
-      <div class="field">
-        <label>Kurs</label>
-        <select id="courseSelect">
-          <option value="HIIT" selected>HIIT · Do 18:00</option>
-          <option value="Cycling">Cycling · Mo 07:00</option>
-          <option value="Strength">Strength · Mi 19:00</option>
-          <option value="Yoga">Yoga · Sa 09:00</option>
-          <option value="Aqua">Aqua · Fr 17:00</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Kapazität</label>
-        <input type="number" id="capacityInput" value="20" min="1" max="60">
-      </div>
-    </div>
-  </header>
+    <div class="live-badge"><div class="live-dot"></div>Live</div>
+  </div>
 
-  <div class="scoreboard">
-    <div class="cell">
-      <div class="label">Gebucht</div>
-      <div class="value" id="scBooked">00</div>
-      <div class="hint">Anmeldungen gesamt</div>
+  <p class="section-label">Heutige Zeitslots</p>
+  <div class="slot-grid" id="slotGrid"></div>
+
+  <div class="detail-panel">
+    <div class="detail-header">
+      <p class="section-label" style="margin:0" id="detailTitle">Zeitslot wählen</p>
+      <div class="summary-row" id="summaryRow"></div>
     </div>
-    <div class="cell">
-      <div class="label">Erwartete No-Shows</div>
-      <div class="value coral" id="scNoShow">00</div>
-      <div class="hint">Ø No-Show-Wahrsch. × Anzahl</div>
+    <div id="aiInsightWrap" style="margin-bottom:14px;"></div>
+    <div class="list-header">
+      <span>#</span><span>Mitglied</span><span>Monate</span><span>No-Show %</span><span>Status</span>
     </div>
-    <div class="cell">
-      <div class="label">Zusätzliche Plätze</div>
-      <div class="value lime" id="scExtra">+0</div>
-      <div class="hint">freigegeben durch Modell</div>
-    </div>
-    <div class="cell">
-      <div class="label">Jetzt verfügbar</div>
-      <div class="value teal" id="scAvailable">00</div>
-      <div class="hint">Kapazität + Zusatz − Gebucht</div>
+    <div class="booking-list" id="bookingList">
+      <p class="empty">Klicke auf einen Zeitslot um die Buchungen zu sehen.</p>
     </div>
   </div>
 
-  <div class="grid">
-
-    <!-- INTAKE FORM -->
-    <div class="panel">
-      <h2>Mitglied buchen</h2>
-      <div class="panel-sub">Das trainierte Modell schätzt sofort die Teilnahmewahrscheinlichkeit.</div>
-
-      <div class="form-row">
-        <label>Name (optional)</label>
-        <input type="text" id="inName" placeholder="z. B. J. Meyer">
+  <div class="add-panel">
+    <p class="section-label">Neue Buchung hinzufügen</p>
+    <div class="form-grid">
+      <div class="form-field">
+        <label>Zeitslot</label>
+        <select id="fSlot"></select>
       </div>
-
-      <div class="two-col">
-        <div class="form-row">
-          <label>Mitglied seit (Monate)</label>
-          <input type="number" id="inMonths" value="12" min="1" max="150">
-        </div>
-        <div class="form-row">
-          <label>Gewicht (kg)</label>
-          <input type="number" id="inWeight" value="80" min="35" max="180" step="0.1">
-        </div>
+      <div class="form-field">
+        <label>Mitgliedschaft (Monate)</label>
+        <input type="number" id="fMonths" min="1" max="100" value="8"/>
       </div>
-
-      <div class="two-col">
-        <div class="form-row">
-          <label>Tage im Voraus gebucht</label>
-          <input type="number" id="inDaysBefore" value="7" min="0" max="60">
-        </div>
-        <div class="form-row">
-          <label>Wochentag</label>
-          <select id="inDay">
-            <option value="Mon">Montag</option>
-            <option value="Tue">Dienstag</option>
-            <option value="Wed">Mittwoch</option>
-            <option value="Thu" selected>Donnerstag</option>
-            <option value="Fri">Freitag</option>
-            <option value="Sat">Samstag</option>
-            <option value="Sun">Sonntag</option>
-          </select>
-        </div>
+      <div class="form-field">
+        <label>Gewicht (kg)</label>
+        <input type="number" id="fWeight" min="40" max="150" value="82" step="0.1"/>
       </div>
-
-      <div class="form-row">
-        <label>Uhrzeit</label>
-        <div class="toggle-group">
-          <div class="toggle-btn active" data-time="AM">Vormittag (AM)</div>
-          <div class="toggle-btn" data-time="PM">Nachmittag/Abend (PM)</div>
-        </div>
+      <div class="form-field">
+        <label>Tage vor Kurs</label>
+        <input type="number" id="fDays" min="1" max="14" value="7"/>
       </div>
-
-      <div class="form-row">
-        <label>Kategorie</label>
-        <select id="inCategory">
-          <option value="HIIT" selected>HIIT</option>
-          <option value="Cycling">Cycling</option>
-          <option value="Strength">Strength</option>
-          <option value="Yoga">Yoga</option>
-          <option value="Aqua">Aqua</option>
-        </select>
+      <div class="form-field">
+        <label>Name</label>
+        <input type="text" id="fName" value="Neues Mitglied"/>
       </div>
-
-      <div class="predict-preview">
-        <div class="pp-label">Live-Vorhersage</div>
-        <div class="prob-bar-track"><div class="prob-bar-fill" id="previewBar" style="width:50%; background:var(--teal);"></div></div>
-        <div class="pp-row">
-          <span id="previewPct">50%</span>
-          <span class="pp-status" id="previewStatus" style="color:var(--teal);">Teilnahme wahrscheinlich</span>
-        </div>
+      <div class="form-field" style="justify-content:flex-end">
+        <button class="add-btn" onclick="addBooking()">+ Buchung hinzufügen</button>
       </div>
-
-      <button class="btn-primary" id="bookBtn">Buchung eintragen</button>
     </div>
-
-    <!-- ROSTER -->
-    <div class="panel">
-      <h2>Teilnehmerliste — live</h2>
-      <div class="panel-sub">Sortiert nach No-Show-Risiko. Grün markierte Plätze wurden durch das Modell freigegeben.</div>
-      <div class="roster-list" id="rosterList"></div>
-    </div>
-
   </div>
-
-  <footer>
-    Modell: logistische Regression, trainiert auf 1.500 historischen Buchungen (GoalZone) <span class="dot">·</span>
-    AUC ≈ 0.82 <span class="dot">·</span> Genauigkeit ≈ 76 % <span class="dot">·</span>
-    KI-Kommentare via Anthropic API
-  </footer>
 
 </div>
 
 <script>
-/* =========================================================
-   TRAINIERTES MODELL — Koeffizienten aus scikit-learn
-   LogisticRegression auf fitness_class_2212.csv (1500 Zeilen)
-   Features standardisiert (StandardScaler)
-   ========================================================= */
-const MODEL = {
-  featureOrder: ['months_as_member','weight','days_before','time_PM',
-                 'day_Tue','day_Wed','day_Thu','day_Fri','day_Sat','day_Sun',
-                 'cat_Cycling','cat_Strength','cat_Yoga','cat_Aqua'],
-  mean:  [15.628666666666666, 82.58570666666667, 8.346666666666666, 0.23933333333333334,
-          0.13, 0.07733333333333334, 0.16066666666666668, 0.20333333333333334, 0.13466666666666666, 0.142,
-          0.25066666666666665, 0.15533333333333332, 0.09, 0.050666666666666665],
-  scale: [12.922233226325686, 12.67795967157001, 4.07657808570974, 0.42667656238524376,
-          0.3363034344160047, 0.2671196153203446, 0.36722321398420454, 0.40247843282452894, 0.3413671858213023, 0.3490501396647765,
-          0.4333969184118513, 0.3622221540558899, 0.2861817604250837, 0.2193161087461556],
-  coef: [1.7273177739210213, -0.12326399822734117, -0.39483680046476693, -0.06937601321300314,
-         0.1016769512965181, -0.054828029689269864, 0.23519997024152825, 0.2823028780487308, 0.2869519575227025, 0.5026062882432845,
-         -0.07996108509139904, -0.07728322022387077, -0.061505056029680455, -0.0013597089750711985],
-  intercept: -0.07910770766969732
+// ── Modell (Logistic Regression, trainiert auf fitness_class_2212.csv) ──
+const INTERCEPT = -1.620391;
+const COEF      = [0.120168, -0.009864, -0.16255, 0.355457, -0.215255, -0.048798];
+// Features: months, weight, days_before, day_of_week(0=Mo..6=So), time_PM(0/1), category(HIIT=0,Cycling=1,Strength=2,Yoga=3,Aqua=4)
+
+const DAY_MAP = {Mon:0,Tue:1,Wed:2,Thu:3,Fri:4,Sat:5,Sun:6};
+const CAT_MAP = {HIIT:0,Cycling:1,Strength:2,Yoga:3,Aqua:4};
+const CAT_COLORS = {
+  HIIT:    ['#EEEDFE','#7F77DD'],
+  Cycling: ['#E1F5EE','#0F6E56'],
+  Strength:['#E6F1FB','#185FA5'],
+  Yoga:    ['#FAEEDA','#854F0B'],
+  Aqua:    ['#FAECE7','#993C1D'],
 };
+const DAYS  = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+const TODAY = DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
+const NAMES = ['Maria K.','Jonas H.','Sara M.','Tobias L.','Anna W.','Felix B.',
+               'Laura S.','Max R.','Julia T.','David P.','Sophie N.','Lukas E.',
+               'Emma F.','Paul G.','Mia Z.','Tim A.','Nina C.','Ben D.','Clara I.','Nico J.'];
 
-function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+function sigmoid(z) { return 1 / (1 + Math.exp(-z)); }
 
-function buildFeatureVector(m){
-  // m: {months, weight, daysBefore, time('AM'|'PM'), day('Mon'..'Sun'), category('HIIT'..'Aqua')}
-  const days = ['Tue','Wed','Thu','Fri','Sat','Sun']; // Mon = baseline
-  const cats = ['Cycling','Strength','Yoga','Aqua'];  // HIIT = baseline
-  const vec = [
-    m.months, m.weight, m.daysBefore, m.time === 'PM' ? 1 : 0,
-    ...days.map(d => m.day === d ? 1 : 0),
-    ...cats.map(c => m.category === c ? 1 : 0)
-  ];
-  return vec;
+function predictNoShow(months, weight, daysBefore, day, isPM, category) {
+  const x = [months, weight, daysBefore, DAY_MAP[day] ?? 0, isPM ? 1 : 0, CAT_MAP[category] ?? 0];
+  const z = INTERCEPT + COEF.reduce((s, c, i) => s + c * x[i], 0);
+  return 1 - sigmoid(z);
 }
 
-function predictAttendanceProb(m){
-  const x = buildFeatureVector(m);
-  let z = MODEL.intercept;
-  for(let i=0;i<x.length;i++){
-    const xs = (x[i] - MODEL.mean[i]) / MODEL.scale[i];
-    z += xs * MODEL.coef[i];
-  }
-  return sigmoid(z); // Wahrscheinlichkeit für "attended = 1"
-}
-
-/* =========================================================
-   STATE
-   ========================================================= */
-let selectedTime = 'AM';
-let bookings = []; // {id, name, months, weight, daysBefore, time, day, category, prob, aiNote}
-let idCounter = 1;
-
-const dayLabelsShort = {Mon:'Mo',Tue:'Di',Wed:'Mi',Thu:'Do',Fri:'Fr',Sat:'Sa',Sun:'So'};
-
-/* Seed-Daten: realistische Startbelegung für die aktuelle Kurssitzung */
-const seedProfiles = [
-  {name:'A. Bauer', months:24, weight:74, daysBefore:3, time:'AM', day:'Thu', category:'HIIT'},
-  {name:'T. Nguyen', months:2,  weight:91, daysBefore:1, time:'PM', day:'Thu', category:'HIIT'},
-  {name:'S. Wolff',  months:41, weight:68, daysBefore:10,time:'AM', day:'Thu', category:'HIIT'},
-  {name:'M. Krause', months:6,  weight:97, daysBefore:0, time:'PM', day:'Thu', category:'HIIT'},
-  {name:'L. Fischer',months:15, weight:79, daysBefore:5, time:'AM', day:'Thu', category:'HIIT'},
-  {name:'R. Becker', months:3,  weight:88, daysBefore:2, time:'PM', day:'Thu', category:'HIIT'},
-  {name:'K. Schmid', months:33, weight:71, daysBefore:14,time:'AM', day:'Thu', category:'HIIT'},
-  {name:'P. Hoffmann',months:1, weight:102,daysBefore:0, time:'PM', day:'Thu', category:'HIIT'},
+// ── Zeitslots ──
+const slots = [
+  { id:'s1', name:'HIIT Power',    day:TODAY, time:'07:00', period:'AM', category:'HIIT',     capacity:15 },
+  { id:'s2', name:'Yoga Flow',     day:TODAY, time:'09:00', period:'AM', category:'Yoga',     capacity:12 },
+  { id:'s3', name:'Cycling Sprint',day:TODAY, time:'10:30', period:'AM', category:'Cycling',  capacity:20 },
+  { id:'s4', name:'Aqua Fit',      day:TODAY, time:'12:00', period:'AM', category:'Aqua',     capacity:18 },
+  { id:'s5', name:'Strength Pro',  day:TODAY, time:'17:00', period:'PM', category:'Strength', capacity:16 },
+  { id:'s6', name:'HIIT Evening',  day:TODAY, time:'19:00', period:'PM', category:'HIIT',     capacity:20 },
 ];
 
-function initials(name){
-  return name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
-}
-
-function addBookingObject(profile){
-  const prob = predictAttendanceProb(profile);
-  const b = {
-    id: idCounter++,
-    name: profile.name || `Mitglied #${idCounter}`,
-    months: profile.months, weight: profile.weight, daysBefore: profile.daysBefore,
-    time: profile.time, day: profile.day, category: profile.category,
-    prob, aiNote: null, aiLoading: true
-  };
-  bookings.push(b);
-  fetchAiNote(b);
-  return b;
-}
-
-/* =========================================================
-   RENDER
-   ========================================================= */
-function render(){
-  const capacity = parseInt(document.getElementById('capacityInput').value) || 0;
-
-  // sort by no-show risk (1-prob) descending
-  const sorted = [...bookings].sort((a,b) => (1-a.prob) - (1-b.prob) ? (b.prob - a.prob) : 0)
-                               .sort((a,b) => a.prob - b.prob); // niedrigste Teilnahme-Wahrsch. zuerst = höchstes Risiko oben
-
-  const listEl = document.getElementById('rosterList');
-  if(sorted.length === 0){
-    listEl.innerHTML = '<div class="empty">Noch keine Buchungen für diese Kurssitzung.</div>';
-  } else {
-    listEl.innerHTML = sorted.map(b => {
-      const pct = Math.round(b.prob*100);
-      const isRisk = b.prob < 0.5;
-      const color = isRisk ? 'var(--coral)' : 'var(--teal)';
-      let noteHtml;
-      if(b.aiLoading){
-        noteHtml = `<div class="ai-note loading">KI-Einschätzung wird geladen …</div>`;
-      } else {
-        noteHtml = `<div class="ai-note ${isRisk ? 'coral-text' : 'lime-text'}">${escapeHtml(b.aiNote || '')}</div>`;
-      }
-      return `
-        <div class="row ${isRisk ? 'freed' : ''}">
-          <div class="avatar">${initials(b.name)}</div>
-          <div class="meta">
-            <div class="name">${escapeHtml(b.name)}</div>
-            <div class="tags">${b.category} · ${dayLabelsShort[b.day]} ${b.time} · ${b.months} Mo. Mitglied · ${b.daysBefore}d vorher</div>
-            ${noteHtml}
-          </div>
-          <div class="probwrap">
-            <span class="pct" style="color:${color}">${pct}%</span>
-            <div class="prob-bar-track"><div class="prob-bar-fill" style="width:${pct}%; background:${color};"></div></div>
-          </div>
-          <div class="chip ${isRisk ? 'risk' : 'confirmed'}">${isRisk ? 'Risiko' : 'Bestätigt'}</div>
-        </div>`;
-    }).join('');
-  }
-
-  // Scoreboard
-  const bookedCount = bookings.length;
-  const expectedNoShow = bookings.reduce((s,b)=> s + (1-b.prob), 0);
-  const extraSlots = Math.floor(0.7 * expectedNoShow); // Sicherheitsfaktor 0.7
-  const available = Math.max(0, (capacity + extraSlots) - bookedCount);
-
-  document.getElementById('scBooked').textContent = String(bookedCount).padStart(2,'0');
-  document.getElementById('scNoShow').textContent = expectedNoShow.toFixed(1);
-  document.getElementById('scExtra').textContent = '+' + extraSlots;
-  document.getElementById('scAvailable').textContent = String(available).padStart(2,'0');
-}
-
-function escapeHtml(str){
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
-}
-
-/* =========================================================
-   LIVE-VORSCHAU IM FORMULAR
-   ========================================================= */
-function currentFormProfile(){
-  return {
-    months: parseFloat(document.getElementById('inMonths').value) || 0,
-    weight: parseFloat(document.getElementById('inWeight').value) || 0,
-    daysBefore: parseFloat(document.getElementById('inDaysBefore').value) || 0,
-    time: selectedTime,
-    day: document.getElementById('inDay').value,
-    category: document.getElementById('inCategory').value
-  };
-}
-
-function updatePreview(){
-  const prob = predictAttendanceProb(currentFormProfile());
-  const pct = Math.round(prob*100);
-  const bar = document.getElementById('previewBar');
-  const pctEl = document.getElementById('previewPct');
-  const statusEl = document.getElementById('previewStatus');
-  bar.style.width = pct + '%';
-  pctEl.textContent = pct + '%';
-  if(prob < 0.5){
-    bar.style.background = 'var(--coral)';
-    statusEl.style.color = 'var(--coral)';
-    statusEl.textContent = 'Nichtteilnahme wahrscheinlich → Platz freigebbar';
-  } else {
-    bar.style.background = 'var(--teal)';
-    statusEl.style.color = 'var(--teal)';
-    statusEl.textContent = 'Teilnahme wahrscheinlich';
-  }
-}
-
-['inMonths','inWeight','inDaysBefore','inDay','inCategory'].forEach(id=>{
-  document.getElementById(id).addEventListener('input', updatePreview);
-  document.getElementById(id).addEventListener('change', updatePreview);
-});
-
-document.querySelectorAll('.toggle-btn').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedTime = btn.dataset.time;
-    updatePreview();
+function genBookings(slot) {
+  const n = Math.min(Math.floor(slot.capacity * (0.85 + Math.random() * 0.2)), slot.capacity);
+  return Array.from({ length: n }, (_, i) => {
+    const months    = Math.round(Math.random() * 40 + 1);
+    const weight    = Math.round((60 + Math.random() * 50) * 10) / 10;
+    const daysBefore= Math.floor(Math.random() * 13) + 1;
+    const noshow    = predictNoShow(months, weight, daysBefore, slot.day, slot.period === 'PM', slot.category);
+    return { name: NAMES[i % NAMES.length], months, weight, daysBefore, noshow: Math.round(noshow * 1000) / 10 };
   });
-});
+}
 
-document.getElementById('capacityInput').addEventListener('input', render);
+const bookings = {};
+slots.forEach(s => bookings[s.id] = genBookings(s));
 
-/* =========================================================
-   BUCHUNG HINZUFÜGEN
-   ========================================================= */
-document.getElementById('bookBtn').addEventListener('click', ()=>{
-  const nameInput = document.getElementById('inName');
-  const profile = currentFormProfile();
-  profile.name = nameInput.value.trim();
-  addBookingObject(profile);
-  render();
-  nameInput.value = '';
-});
+let selectedSlot = null;
 
-/* =========================================================
-   ANTHROPIC API — kurze Einschätzung pro Buchung
-   ========================================================= */
-// HINWEIS: Dieser Aufruf funktioniert nur innerhalb der Claude.ai-Artefakt-Umgebung,
-// in der ein Anthropic-Konto ohne separaten API-Schlüssel authentifiziert wird.
-// Für einen eigenständigen Betrieb (z. B. via GitHub Pages) muss dieser Aufruf durch
-// einen eigenen Backend-Endpunkt ersetzt werden, der den API-Schlüssel serverseitig
-// hält (siehe README.md, Abschnitt "Produktivbetrieb"). Ohne dieses Backend greift
-// automatisch der lokale Fallback-Text unten.
-const ANTHROPIC_ENDPOINT = "https://api.anthropic.com/v1/messages"; // Platzhalter — in Produktion durch eigenen Backend-Endpunkt ersetzen
+// ── Hilfsfunktionen ──
+function getStats(slot) {
+  const bs = bookings[slot.id] || [];
+  const expectedNoShows = bs.reduce((s, b) => s + b.noshow / 100, 0);
+  return {
+    occupied: bs.length,
+    freeReal: slot.capacity - bs.length,
+    freeEst:  Math.round((slot.capacity - bs.length) + expectedNoShows),
+    expNS:    Math.round(expectedNoShows * 10) / 10,
+  };
+}
 
-async function fetchAiNote(booking){
-  try{
-    const pct = Math.round(booking.prob*100);
-    const prompt = `Ein Fitnessstudio-Buchungssystem hat für ein Mitglied folgende Teilnahmewahrscheinlichkeit berechnet: ${pct}%.
-Merkmale: ${booking.months} Monate Mitgliedschaft, Buchung ${booking.daysBefore} Tage im Voraus, Kurs "${booking.category}" am ${booking.day} (${booking.time}).
-Formuliere GENAU EINEN kurzen Satz (max. 12 Wörter) auf Deutsch als knappe Einschätzung für das Studio-Personal, ob eher mit Teilnahme oder Absage zu rechnen ist und ein möglicher Grund. Kein Vorspann, keine Anführungszeichen, nur der Satz.`;
+function barColor(pct) {
+  if (pct > 0.85) return '#E24B4A';
+  if (pct > 0.60) return '#EF9F27';
+  return '#1D9E75';
+}
+
+// ── Render Slots ──
+function renderSlots() {
+  document.getElementById('slotGrid').innerHTML = slots.map(s => {
+    const { occupied, freeEst } = getStats(s);
+    const pct = occupied / s.capacity;
+    const [bg, fg] = CAT_COLORS[s.category];
+    return `
+      <div class="slot-card${selectedSlot === s.id ? ' selected' : ''}" onclick="selectSlot('${s.id}')">
+        <div class="slot-top">
+          <div>
+            <div class="slot-name">${s.name}</div>
+            <div class="slot-time">${s.time} · ${s.day}</div>
+          </div>
+          <span class="cat-badge" style="background:${bg};color:${fg}">${s.category}</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${Math.min(pct,1)*100}%;background:${barColor(pct)}"></div>
+        </div>
+        <div class="slot-stats">
+          <span>${occupied}/${s.capacity} gebucht</span>
+          <span class="slot-free">~${freeEst} frei</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Slot-Auswahl im Formular
+  const sel = document.getElementById('fSlot');
+  const cur = sel.value;
+  sel.innerHTML = slots.map(s => `<option value="${s.id}">${s.name} (${s.time})</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+// ── Render Detail ──
+function renderDetail(slotId) {
+  const slot = slots.find(s => s.id === slotId);
+  if (!slot) return;
+
+  const { occupied, freeEst, expNS } = getStats(slot);
+  document.getElementById('detailTitle').textContent =
+    `${slot.name} · ${slot.time} ${slot.period} · ${slot.day}`;
+
+  document.getElementById('summaryRow').innerHTML = `
+    <div class="sum-card"><div class="sum-label">Kapazität</div><div class="sum-val">${slot.capacity}</div></div>
+    <div class="sum-card"><div class="sum-label">Gebucht</div><div class="sum-val">${occupied}</div></div>
+    <div class="sum-card"><div class="sum-label">Erw. No-Shows</div><div class="sum-val" style="color:#EF9F27">${expNS}</div></div>
+    <div class="sum-card"><div class="sum-label">Geschätzt frei</div><div class="sum-val" style="color:#1D9E75">~${freeEst}</div></div>
+  `;
+
+  const sorted = [...(bookings[slotId] || [])].sort((a, b) => b.noshow - a.noshow);
+  document.getElementById('bookingList').innerHTML = sorted.length === 0
+    ? '<p class="empty">Noch keine Buchungen.</p>'
+    : sorted.map((b, i) => {
+        const isHigh = b.noshow >= 65;
+        const isLow  = b.noshow < 35;
+        const rowCls = isHigh ? 'noshow' : isLow ? 'attend' : 'neutral';
+        const probColor = isHigh ? '#E24B4A' : isLow ? '#1D9E75' : '#EF9F27';
+        const tagBg  = isHigh ? 'var(--red-bg)'   : isLow ? 'var(--green-bg)' : 'var(--orange-bg)';
+        const tagFg  = isHigh ? '#A32D2D' : isLow ? '#0F6E56' : '#854F0B';
+        const tagTxt = isHigh ? 'No-Show wahrsch.' : isLow ? 'Erscheint wahrsch.' : 'Ungewiss';
+        return `
+          <div class="booking-row ${rowCls}">
+            <span style="font-size:10px;color:var(--text-ter);text-align:center">${i+1}</span>
+            <div>
+              <div class="booking-name">${b.name}</div>
+              <div class="booking-meta">${b.months} Mo. · ${b.weight} kg · ${b.daysBefore}d vorher</div>
+            </div>
+            <span style="font-size:12px;color:var(--text-sec)">${b.months} Mo.</span>
+            <div class="prob-wrap">
+              <div class="prob-track"><div class="prob-fill" style="width:${b.noshow}%;background:${probColor}"></div></div>
+              <span class="prob-pct" style="color:${probColor}">${b.noshow}%</span>
+            </div>
+            <span class="status-tag" style="background:${tagBg};color:${tagFg}">${tagTxt}</span>
+          </div>`;
+      }).join('');
+}
+
+function selectSlot(id) {
+  selectedSlot = id;
+  renderSlots();
+  renderDetail(id);
+  renderAiInsightBox(id);
+}
+
+// ── KI-Einschätzung pro Zeitslot (Anthropic API) ──
+// Hinweis: Dieser Aufruf funktioniert nur innerhalb der Claude.ai-Artefakt-Umgebung.
+// Bei eigenständigem Hosting (z. B. GitHub Pages) greift automatisch der lokale
+// Fallback-Text unten — die Kernfunktion der App bleibt davon unberührt.
+const ANTHROPIC_ENDPOINT = "https://api.anthropic.com/v1/messages"; // in Produktion durch eigenen Backend-Endpunkt ersetzen
+const aiCache = {};
+
+function renderAiInsightBox(slotId) {
+  const wrap = document.getElementById('aiInsightWrap');
+  if (aiCache[slotId]) {
+    wrap.innerHTML = `<div class="ai-box">🤖 ${aiCache[slotId]}</div>`;
+    return;
+  }
+  wrap.innerHTML = `<button class="ai-btn" id="aiBtn" onclick="requestAiInsight('${slotId}')">🤖 KI-Einschätzung für diesen Slot abrufen</button>`;
+}
+
+async function requestAiInsight(slotId) {
+  const slot = slots.find(s => s.id === slotId);
+  const { occupied, freeEst, expNS } = getStats(slot);
+  const wrap = document.getElementById('aiInsightWrap');
+  wrap.innerHTML = `<div class="ai-box loading">KI-Einschätzung wird geladen …</div>`;
+
+  const highRisk = (bookings[slotId] || []).filter(b => b.noshow >= 65).length;
+
+  try {
+    const prompt = `Ein Fitnessstudio-Kursslot "${slot.name}" (${slot.category}, ${slot.time} ${slot.day}) hat ${occupied} von ${slot.capacity} Plätzen gebucht.
+Erwartete No-Shows: ${expNS}. Geschätzt frei durch Overbooking: ${freeEst}. Davon ${highRisk} Buchungen mit hohem No-Show-Risiko (≥65%).
+Formuliere GENAU ZWEI kurze Sätze auf Deutsch als Handlungsempfehlung fürs Studio-Personal: ob und wie viele Zusatzplätze angeboten werden sollten und worauf zu achten ist. Kein Vorspann, keine Anführungszeichen.`;
 
     const response = await fetch(ANTHROPIC_ENDPOINT, {
       method: "POST",
@@ -587,27 +419,42 @@ Formuliere GENAU EINEN kurzen Satz (max. 12 Wörter) auf Deutsch als knappe Eins
         messages: [{ role: "user", content: prompt }]
       })
     });
-    if(!response.ok) throw new Error("API nicht erreichbar (erwartet außerhalb von Claude.ai)");
+    if (!response.ok) throw new Error("API nicht erreichbar (erwartet außerhalb von Claude.ai)");
     const data = await response.json();
     const textBlock = (data.content || []).find(c => c.type === 'text');
-    booking.aiNote = textBlock ? textBlock.text.trim() : 'Keine Einschätzung verfügbar.';
-  } catch(err){
+    aiCache[slotId] = textBlock ? textBlock.text.trim() : 'Keine Einschätzung verfügbar.';
+  } catch (err) {
     // Lokaler Fallback, greift z. B. auf GitHub Pages ohne eigenes Backend
-    booking.aiNote = booking.prob < 0.5
-      ? 'Erhöhtes Absagerisiko laut Modellmerkmalen. (Demo-Fallback, kein API-Backend verbunden)'
-      : 'Stabile Teilnahmehistorie deutet auf Erscheinen hin. (Demo-Fallback, kein API-Backend verbunden)';
-  } finally {
-    booking.aiLoading = false;
-    render();
+    aiCache[slotId] = freeEst > 0
+      ? `Etwa ${freeEst} Zusatzplätze erscheinen auf Basis der Modellprognose vertretbar. Bei ${highRisk} Hochrisiko-Buchungen empfiehlt sich eine kurze Erinnerung vor Kursbeginn. (Demo-Fallback, kein API-Backend verbunden)`
+      : `Aktuell kein sicherer Spielraum für Zusatzplätze erkennbar — Kapazität ist bereits knapp ausgelastet. (Demo-Fallback, kein API-Backend verbunden)`;
   }
+  renderAiInsightBox(slotId);
 }
 
-/* =========================================================
-   INIT
-   ========================================================= */
-seedProfiles.forEach(p => addBookingObject(p));
-updatePreview();
-render();
+function addBooking() {
+  const slotId    = document.getElementById('fSlot').value;
+  const slot      = slots.find(s => s.id === slotId);
+  const months    = parseInt(document.getElementById('fMonths').value)  || 8;
+  const weight    = parseFloat(document.getElementById('fWeight').value) || 80;
+  const daysBefore= parseInt(document.getElementById('fDays').value)    || 7;
+  const name      = document.getElementById('fName').value.trim()       || 'Mitglied';
+
+  if (bookings[slotId].length >= slot.capacity + 5) {
+    alert('Maximale Buchungsanzahl erreicht für diesen Slot.');
+    return;
+  }
+
+  const noshow = predictNoShow(months, weight, daysBefore, slot.day, slot.period === 'PM', slot.category);
+  bookings[slotId].push({ name, months, weight, daysBefore, noshow: Math.round(noshow * 1000) / 10 });
+
+  document.getElementById('fName').value = NAMES[Math.floor(Math.random() * NAMES.length)];
+  selectSlot(slotId);
+}
+
+// Init
+renderSlots();
+selectSlot('s1');
 </script>
 </body>
 </html>
