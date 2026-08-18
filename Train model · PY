@@ -1,9 +1,15 @@
 """
-GoalZone — Trainingsskript für das No-Show-Vorhersagemodell
-=============================================================
-Trainiert eine logistische Regression auf historischen Buchungsdaten
-und gibt die Koeffizienten aus, die anschließend fest in die
-JavaScript-Vorhersagefunktion in index.html eingebettet werden.
+GoalZone — Trainingsskript für das No-Show-Vorhersagemodell (v2, kompakt)
+============================================================================
+Trainiert eine logistische Regression mit einem kompakten Feature-Schema
+(6 Rohmerkmale, Wochentag & Kategorie ordinal statt One-Hot codiert).
+Die resultierenden Koeffizienten sind fest im JavaScript in index.html
+eingebettet (INTERCEPT / COEF).
+
+Hinweis: Dieses Schema ist bewusst einfacher gehalten als die One-Hot-Variante
+aus der ersten App-Version — weniger Parameter, dafür etwas geringere
+Modellgüte. Für ein Portfolio-/Demo-Projekt ist das ein sinnvoller Trade-off
+zwischen Nachvollziehbarkeit und Präzision.
 
 Ausführen:
     pip install pandas scikit-learn numpy
@@ -15,17 +21,18 @@ Datenquelle: ../data/fitness_class_2212.csv
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, roc_auc_score, classification_report
 
 DATA_PATH = "../data/fitness_class_2212.csv"
 
+DAY_MAP = {"Mon": 0, "Tue": 1, "Wed": 2, "Thu": 3, "Fri": 4, "Sat": 5, "Sun": 6}
+CAT_MAP = {"HIIT": 0, "Cycling": 1, "Strength": 2, "Yoga": 3, "Aqua": 4}
+
 
 def load_and_clean(path: str) -> pd.DataFrame:
     df = pd.read_csv(path)
 
-    # 'days_before' enthält teils Text ("12 days") statt reiner Zahlen
     df["days_before"] = (
         df["days_before"].astype(str)
         .str.replace(" days", "", regex=False)
@@ -34,15 +41,12 @@ def load_and_clean(path: str) -> pd.DataFrame:
         .astype(int)
     )
 
-    # Uneinheitliche Wochentags-Schreibweisen vereinheitlichen
-    day_map = {"Wednesday": "Wed", "Monday": "Mon", "Fri.": "Fri"}
-    df["day_of_week"] = df["day_of_week"].replace(day_map)
+    day_map_fix = {"Wednesday": "Wed", "Monday": "Mon", "Fri.": "Fri"}
+    df["day_of_week"] = df["day_of_week"].replace(day_map_fix)
 
-    # Platzhalter '-' in 'category' durch häufigsten Wert ersetzen
     df["category"] = df["category"].replace("-", np.nan)
     df["category"] = df["category"].fillna(df["category"].mode()[0])
 
-    # Fehlende Gewichtswerte mit Median auffüllen
     df["weight"] = df["weight"].fillna(df["weight"].median())
 
     return df
@@ -50,21 +54,11 @@ def load_and_clean(path: str) -> pd.DataFrame:
 
 def build_features(df: pd.DataFrame):
     df = df.copy()
+    df["day_num"] = df["day_of_week"].map(DAY_MAP)
     df["time_PM"] = (df["time"] == "PM").astype(int)
+    df["cat_num"] = df["category"].map(CAT_MAP)
 
-    days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-    for d in days[1:]:  # Montag = Referenzkategorie
-        df[f"day_{d}"] = (df["day_of_week"] == d).astype(int)
-
-    cats = ["HIIT", "Cycling", "Strength", "Yoga", "Aqua"]
-    for c in cats[1:]:  # HIIT = Referenzkategorie
-        df[f"cat_{c}"] = (df["category"] == c).astype(int)
-
-    feature_cols = (
-        ["months_as_member", "weight", "days_before", "time_PM"]
-        + [f"day_{d}" for d in days[1:]]
-        + [f"cat_{c}" for c in cats[1:]]
-    )
+    feature_cols = ["months_as_member", "weight", "days_before", "day_num", "time_PM", "cat_num"]
     return df[feature_cols].values, feature_cols
 
 
@@ -73,30 +67,27 @@ def main():
     X, feature_cols = build_features(df)
     y = df["attended"].values
 
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
+    # Bewusst UNSKALIERT (Rohwerte), damit die Koeffizienten direkt im JS
+    # ohne Skalierungsschritt verwendbar sind — siehe predictNoShow() in index.html
     X_train, X_test, y_train, y_test = train_test_split(
-        X_scaled, y, test_size=0.2, random_state=42, stratify=y
+        X, y, test_size=0.2, random_state=42, stratify=y
     )
 
-    model = LogisticRegression(max_iter=1000, class_weight="balanced")
+    model = LogisticRegression(max_iter=2000, class_weight="balanced")
     model.fit(X_train, y_train)
 
     pred = model.predict(X_test)
     proba = model.predict_proba(X_test)[:, 1]
 
-    print("=== Modellgüte ===")
+    print("=== Modellgüte (kompaktes Schema) ===")
     print(f"Accuracy: {accuracy_score(y_test, pred):.3f}")
     print(f"AUC:      {roc_auc_score(y_test, proba):.3f}")
     print(classification_report(y_test, pred))
 
-    print("\n=== Für index.html (JS MODEL-Objekt) ===")
-    print("featureOrder:", feature_cols)
-    print("mean:", scaler.mean_.tolist())
-    print("scale:", scaler.scale_.tolist())
-    print("coef:", model.coef_[0].tolist())
-    print("intercept:", model.intercept_[0])
+    print("\n=== Für index.html (JS INTERCEPT / COEF) ===")
+    print("features:", feature_cols)
+    print("INTERCEPT =", round(model.intercept_[0], 6))
+    print("COEF      =", [round(c, 6) for c in model.coef_[0]])
 
 
 if __name__ == "__main__":
