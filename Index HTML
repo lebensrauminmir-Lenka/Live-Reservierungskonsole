@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoalZone — Live-Reservierungskonsole</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1117;
+    --surface:#171B23;
+    --surface-2:#1F242E;
+    --line: #2A303C;
+    --text:#EDEFF3;
+    --muted:#8A93A3;
+    --lime:#C8FF4D;
+    --coral:#FF6B4A;
+    --teal:#35D0BA;
+    --lime-dim: rgba(200,255,77,0.12);
+    --coral-dim: rgba(255,107,74,0.12);
+    --teal-dim: rgba(53,208,186,0.12);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 15% 0%, rgba(200,255,77,0.05), transparent 40%),
+      radial-gradient(circle at 85% 100%, rgba(255,107,74,0.05), transparent 40%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    padding: 28px 20px 60px;
+  }
+  .wrap{ max-width:1180px; margin:0 auto; }
+
+  /* ---------- HEADER ---------- */
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    flex-wrap:wrap; gap:16px;
+    margin-bottom:26px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:18px;
+  }
+  .brand{ display:flex; align-items:baseline; gap:12px; }
+  .brand .mark{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:38px; letter-spacing:1px; line-height:1;
+    color:var(--text);
+  }
+  .brand .mark span{ color:var(--lime); }
+  .brand .sub{ color:var(--muted); font-size:13px; letter-spacing:.02em; }
+  .session-config{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+  }
+  .session-config label{
+    font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted);
+    display:block; margin-bottom:4px;
+  }
+  .session-config .field{ display:flex; flex-direction:column; }
+  .session-config input, .session-config select{
+    background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+    border-radius:6px; padding:7px 10px; font-family:'Space Mono', monospace; font-size:13px;
+    width:110px;
+  }
+
+  /* ---------- SCOREBOARD ---------- */
+  .scoreboard{
+    background: linear-gradient(180deg, var(--surface), var(--surface-2));
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px 24px;
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap:0;
+    margin-bottom:28px;
+    position:relative;
+    overflow:hidden;
+  }
+  .scoreboard::before{
+    content:"";
+    position:absolute; inset:0;
+    background: repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.015) 40px);
+    pointer-events:none;
+  }
+  .cell{
+    text-align:center;
+    padding: 4px 10px;
+    border-right:1px solid var(--line);
+  }
+  .cell:last-child{ border-right:none; }
+  .cell .label{
+    font-size:11px; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); margin-bottom:8px;
+  }
+  .cell .value{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:54px; line-height:1;
+    transition: color .3s ease;
+  }
+  .cell .value.lime{ color:var(--lime); text-shadow:0 0 22px rgba(200,255,77,.35); }
+  .cell .value.coral{ color:var(--coral); text-shadow:0 0 22px rgba(255,107,74,.3); }
+  .cell .value.teal{ color:var(--teal); }
+  .cell .hint{ font-family:'Space Mono', monospace; font-size:11px; color:var(--muted); margin-top:6px; }
+
+  /* ---------- MAIN GRID ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns: 380px 1fr;
+    gap:22px;
+  }
+  @media (max-width:860px){ .grid{ grid-template-columns:1fr; } }
+
+  .panel{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:22px;
+  }
+  .panel h2{
+    font-family:'Bebas Neue', sans-serif;
+    font-size:22px; letter-spacing:.03em;
+    margin-bottom:4px;
+  }
+  .panel .panel-sub{ color:var(--muted); font-size:12.5px; margin-bottom:18px; }
+
+  /* FORM */
+  .form-row{ margin-bottom:14px; }
+  .form-row label{
+    display:block; font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--muted); margin-bottom:6px;
+  }
+  .form-row input, .form-row select{
+    width:100%; background:var(--surface-2); border:1px solid var(--line); color:var(--text);
+    border-radius:8px; padding:10px 12px; font-family:'Inter'; font-size:14px;
+  }
+  .form-row input:focus, .form-row select:focus{ outline:none; border-color:var(--lime); }
+  .two-col{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .toggle-group{ display:flex; gap:8px; }
+  .toggle-btn{
+    flex:1; padding:10px; text-align:center; border-radius:8px; border:1px solid var(--line);
+    background:var(--surface-2); color:var(--muted); cursor:pointer; font-size:13px; font-weight:600;
+    transition:all .15s ease;
+  }
+  .toggle-btn.active{ background:var(--lime-dim); border-color:var(--lime); color:var(--lime); }
+
+  .predict-preview{
+    margin-top:18px; padding:16px; border-radius:10px; background:var(--surface-2);
+    border:1px solid var(--line);
+  }
+  .predict-preview .pp-label{ font-size:11px; text-transform:uppercase; color:var(--muted); letter-spacing:.08em; margin-bottom:8px;}
+  .prob-bar-track{ height:8px; border-radius:4px; background:#12151b; overflow:hidden; margin-bottom:8px;}
+  .prob-bar-fill{ height:100%; border-radius:4px; transition: width .4s ease, background .4s ease; }
+  .pp-row{ display:flex; justify-content:space-between; align-items:center; font-family:'Space Mono', monospace; font-size:13px; }
+  .pp-status{ font-weight:700; }
+
+  .btn-primary{
+    margin-top:16px; width:100%; padding:13px; border:none; border-radius:9px;
+    background:var(--lime); color:#0E1117; font-weight:700; font-size:14px;
+    cursor:pointer; letter-spacing:.02em;
+    transition: transform .1s ease, box-shadow .2s ease;
+  }
+  .btn-primary:hover{ box-shadow:0 0 24px rgba(200,255,77,.35); transform:translateY(-1px); }
+  .btn-primary:active{ transform:translateY(0); }
+  .btn-primary:disabled{ opacity:.5; cursor:not-allowed; box-shadow:none; transform:none; }
+
+  /* ROSTER */
+  .roster-list{ display:flex; flex-direction:column; gap:10px; max-height:640px; overflow-y:auto; padding-right:4px; }
+  .roster-list::-webkit-scrollbar{ width:6px; }
+  .roster-list::-webkit-scrollbar-thumb{ background:var(--line); border-radius:3px; }
+
+  .row{
+    display:grid;
+    grid-template-columns: 40px 1fr 130px 90px;
+    align-items:center;
+    gap:14px;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px 14px;
+    animation: slideIn .3s ease;
+  }
+  @keyframes slideIn{ from{ opacity:0; transform:translateY(-6px);} to{opacity:1; transform:translateY(0);} }
+  .row.freed{ border-color: var(--lime); background: linear-gradient(90deg, var(--lime-dim), var(--surface-2) 30%); }
+
+  .row .avatar{
+    width:36px; height:36px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Space Mono', monospace; font-weight:700; font-size:13px;
+    background:var(--surface); border:1px solid var(--line); color:var(--muted);
+  }
+  .row .meta .name{ font-weight:600; font-size:14px; }
+  .row .meta .tags{ font-size:11.5px; color:var(--muted); margin-top:2px; font-family:'Space Mono', monospace;}
+  .row .meta .ai-note{ font-size:12px; color:var(--muted); margin-top:5px; font-style:italic; min-height:14px; }
+  .row .meta .ai-note.loading{ opacity:.5; }
+  .row .meta .ai-note.lime-text{ color:var(--lime); font-style:normal; }
+  .row .meta .ai-note.coral-text{ color:var(--coral); font-style:normal; }
+
+  .row .probwrap{ text-align:right; }
+  .row .probwrap .pct{ font-family:'Space Mono', monospace; font-weight:700; font-size:15px; }
+  .row .probwrap .prob-bar-track{ margin-top:6px; margin-bottom:0; }
+
+  .chip{
+    justify-self:end;
+    font-size:11px; font-weight:700; padding:5px 10px; border-radius:999px;
+    text-align:center; white-space:nowrap;
+  }
+  .chip.confirmed{ background:var(--teal-dim); color:var(--teal); }
+  .chip.risk{ background:var(--coral-dim); color:var(--coral); }
+
+  .empty{ color:var(--muted); font-size:13px; text-align:center; padding:30px 0; }
+
+  footer{
+    margin-top:26px; text-align:center; color:var(--muted); font-size:11.5px;
+    font-family:'Space Mono', monospace; letter-spacing:.02em;
+  }
+  footer .dot{ color:var(--lime); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="mark">GOAL<span>ZONE</span></div>
+      <div class="sub">Live-Reservierungskonsole · No-Show-Vorhersage</div>
+    </div>
+    <div class="session-config">
+      <div class="field">
+        <label>Kurs</label>
+        <select id="courseSelect">
+          <option value="HIIT" selected>HIIT · Do 18:00</option>
+          <option value="Cycling">Cycling · Mo 07:00</option>
+          <option value="Strength">Strength · Mi 19:00</option>
+          <option value="Yoga">Yoga · Sa 09:00</option>
+          <option value="Aqua">Aqua · Fr 17:00</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Kapazität</label>
+        <input type="number" id="capacityInput" value="20" min="1" max="60">
+      </div>
+    </div>
+  </header>
+
+  <div class="scoreboard">
+    <div class="cell">
+      <div class="label">Gebucht</div>
+      <div class="value" id="scBooked">00</div>
+      <div class="hint">Anmeldungen gesamt</div>
+    </div>
+    <div class="cell">
+      <div class="label">Erwartete No-Shows</div>
+      <div class="value coral" id="scNoShow">00</div>
+      <div class="hint">Ø No-Show-Wahrsch. × Anzahl</div>
+    </div>
+    <div class="cell">
+      <div class="label">Zusätzliche Plätze</div>
+      <div class="value lime" id="scExtra">+0</div>
+      <div class="hint">freigegeben durch Modell</div>
+    </div>
+    <div class="cell">
+      <div class="label">Jetzt verfügbar</div>
+      <div class="value teal" id="scAvailable">00</div>
+      <div class="hint">Kapazität + Zusatz − Gebucht</div>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- INTAKE FORM -->
+    <div class="panel">
+      <h2>Mitglied buchen</h2>
+      <div class="panel-sub">Das trainierte Modell schätzt sofort die Teilnahmewahrscheinlichkeit.</div>
+
+      <div class="form-row">
+        <label>Name (optional)</label>
+        <input type="text" id="inName" placeholder="z. B. J. Meyer">
+      </div>
+
+      <div class="two-col">
+        <div class="form-row">
+          <label>Mitglied seit (Monate)</label>
+          <input type="number" id="inMonths" value="12" min="1" max="150">
+        </div>
+        <div class="form-row">
+          <label>Gewicht (kg)</label>
+          <input type="number" id="inWeight" value="80" min="35" max="180" step="0.1">
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="form-row">
+          <label>Tage im Voraus gebucht</label>
+          <input type="number" id="inDaysBefore" value="7" min="0" max="60">
+        </div>
+        <div class="form-row">
+          <label>Wochentag</label>
+          <select id="inDay">
+            <option value="Mon">Montag</option>
+            <option value="Tue">Dienstag</option>
+            <option value="Wed">Mittwoch</option>
+            <option value="Thu" selected>Donnerstag</option>
+            <option value="Fri">Freitag</option>
+            <option value="Sat">Samstag</option>
+            <option value="Sun">Sonntag</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>Uhrzeit</label>
+        <div class="toggle-group">
+          <div class="toggle-btn active" data-time="AM">Vormittag (AM)</div>
+          <div class="toggle-btn" data-time="PM">Nachmittag/Abend (PM)</div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <label>Kategorie</label>
+        <select id="inCategory">
+          <option value="HIIT" selected>HIIT</option>
+          <option value="Cycling">Cycling</option>
+          <option value="Strength">Strength</option>
+          <option value="Yoga">Yoga</option>
+          <option value="Aqua">Aqua</option>
+        </select>
+      </div>
+
+      <div class="predict-preview">
+        <div class="pp-label">Live-Vorhersage</div>
+        <div class="prob-bar-track"><div class="prob-bar-fill" id="previewBar" style="width:50%; background:var(--teal);"></div></div>
+        <div class="pp-row">
+          <span id="previewPct">50%</span>
+          <span class="pp-status" id="previewStatus" style="color:var(--teal);">Teilnahme wahrscheinlich</span>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="bookBtn">Buchung eintragen</button>
+    </div>
+
+    <!-- ROSTER -->
+    <div class="panel">
+      <h2>Teilnehmerliste — live</h2>
+      <div class="panel-sub">Sortiert nach No-Show-Risiko. Grün markierte Plätze wurden durch das Modell freigegeben.</div>
+      <div class="roster-list" id="rosterList"></div>
+    </div>
+
+  </div>
+
+  <footer>
+    Modell: logistische Regression, trainiert auf 1.500 historischen Buchungen (GoalZone) <span class="dot">·</span>
+    AUC ≈ 0.82 <span class="dot">·</span> Genauigkeit ≈ 76 % <span class="dot">·</span>
+    KI-Kommentare via Anthropic API
+  </footer>
+
+</div>
+
+<script>
+/* =========================================================
+   TRAINIERTES MODELL — Koeffizienten aus scikit-learn
+   LogisticRegression auf fitness_class_2212.csv (1500 Zeilen)
+   Features standardisiert (StandardScaler)
+   ========================================================= */
+const MODEL = {
+  featureOrder: ['months_as_member','weight','days_before','time_PM',
+                 'day_Tue','day_Wed','day_Thu','day_Fri','day_Sat','day_Sun',
+                 'cat_Cycling','cat_Strength','cat_Yoga','cat_Aqua'],
+  mean:  [15.628666666666666, 82.58570666666667, 8.346666666666666, 0.23933333333333334,
+          0.13, 0.07733333333333334, 0.16066666666666668, 0.20333333333333334, 0.13466666666666666, 0.142,
+          0.25066666666666665, 0.15533333333333332, 0.09, 0.050666666666666665],
+  scale: [12.922233226325686, 12.67795967157001, 4.07657808570974, 0.42667656238524376,
+          0.3363034344160047, 0.2671196153203446, 0.36722321398420454, 0.40247843282452894, 0.3413671858213023, 0.3490501396647765,
+          0.4333969184118513, 0.3622221540558899, 0.2861817604250837, 0.2193161087461556],
+  coef: [1.7273177739210213, -0.12326399822734117, -0.39483680046476693, -0.06937601321300314,
+         0.1016769512965181, -0.054828029689269864, 0.23519997024152825, 0.2823028780487308, 0.2869519575227025, 0.5026062882432845,
+         -0.07996108509139904, -0.07728322022387077, -0.061505056029680455, -0.0013597089750711985],
+  intercept: -0.07910770766969732
+};
+
+function sigmoid(z){ return 1/(1+Math.exp(-z)); }
+
+function buildFeatureVector(m){
+  // m: {months, weight, daysBefore, time('AM'|'PM'), day('Mon'..'Sun'), category('HIIT'..'Aqua')}
+  const days = ['Tue','Wed','Thu','Fri','Sat','Sun']; // Mon = baseline
+  const cats = ['Cycling','Strength','Yoga','Aqua'];  // HIIT = baseline
+  const vec = [
+    m.months, m.weight, m.daysBefore, m.time === 'PM' ? 1 : 0,
+    ...days.map(d => m.day === d ? 1 : 0),
+    ...cats.map(c => m.category === c ? 1 : 0)
+  ];
+  return vec;
+}
+
+function predictAttendanceProb(m){
+  const x = buildFeatureVector(m);
+  let z = MODEL.intercept;
+  for(let i=0;i<x.length;i++){
+    const xs = (x[i] - MODEL.mean[i]) / MODEL.scale[i];
+    z += xs * MODEL.coef[i];
+  }
+  return sigmoid(z); // Wahrscheinlichkeit für "attended = 1"
+}
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let selectedTime = 'AM';
+let bookings = []; // {id, name, months, weight, daysBefore, time, day, category, prob, aiNote}
+let idCounter = 1;
+
+const dayLabelsShort = {Mon:'Mo',Tue:'Di',Wed:'Mi',Thu:'Do',Fri:'Fr',Sat:'Sa',Sun:'So'};
+
+/* Seed-Daten: realistische Startbelegung für die aktuelle Kurssitzung */
+const seedProfiles = [
+  {name:'A. Bauer', months:24, weight:74, daysBefore:3, time:'AM', day:'Thu', category:'HIIT'},
+  {name:'T. Nguyen', months:2,  weight:91, daysBefore:1, time:'PM', day:'Thu', category:'HIIT'},
+  {name:'S. Wolff',  months:41, weight:68, daysBefore:10,time:'AM', day:'Thu', category:'HIIT'},
+  {name:'M. Krause', months:6,  weight:97, daysBefore:0, time:'PM', day:'Thu', category:'HIIT'},
+  {name:'L. Fischer',months:15, weight:79, daysBefore:5, time:'AM', day:'Thu', category:'HIIT'},
+  {name:'R. Becker', months:3,  weight:88, daysBefore:2, time:'PM', day:'Thu', category:'HIIT'},
+  {name:'K. Schmid', months:33, weight:71, daysBefore:14,time:'AM', day:'Thu', category:'HIIT'},
+  {name:'P. Hoffmann',months:1, weight:102,daysBefore:0, time:'PM', day:'Thu', category:'HIIT'},
+];
+
+function initials(name){
+  return name.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2);
+}
+
+function addBookingObject(profile){
+  const prob = predictAttendanceProb(profile);
+  const b = {
+    id: idCounter++,
+    name: profile.name || `Mitglied #${idCounter}`,
+    months: profile.months, weight: profile.weight, daysBefore: profile.daysBefore,
+    time: profile.time, day: profile.day, category: profile.category,
+    prob, aiNote: null, aiLoading: true
+  };
+  bookings.push(b);
+  fetchAiNote(b);
+  return b;
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function render(){
+  const capacity = parseInt(document.getElementById('capacityInput').value) || 0;
+
+  // sort by no-show risk (1-prob) descending
+  const sorted = [...bookings].sort((a,b) => (1-a.prob) - (1-b.prob) ? (b.prob - a.prob) : 0)
+                               .sort((a,b) => a.prob - b.prob); // niedrigste Teilnahme-Wahrsch. zuerst = höchstes Risiko oben
+
+  const listEl = document.getElementById('rosterList');
+  if(sorted.length === 0){
+    listEl.innerHTML = '<div class="empty">Noch keine Buchungen für diese Kurssitzung.</div>';
+  } else {
+    listEl.innerHTML = sorted.map(b => {
+      const pct = Math.round(b.prob*100);
+      const isRisk = b.prob < 0.5;
+      const color = isRisk ? 'var(--coral)' : 'var(--teal)';
+      let noteHtml;
+      if(b.aiLoading){
+        noteHtml = `<div class="ai-note loading">KI-Einschätzung wird geladen …</div>`;
+      } else {
+        noteHtml = `<div class="ai-note ${isRisk ? 'coral-text' : 'lime-text'}">${escapeHtml(b.aiNote || '')}</div>`;
+      }
+      return `
+        <div class="row ${isRisk ? 'freed' : ''}">
+          <div class="avatar">${initials(b.name)}</div>
+          <div class="meta">
+            <div class="name">${escapeHtml(b.name)}</div>
+            <div class="tags">${b.category} · ${dayLabelsShort[b.day]} ${b.time} · ${b.months} Mo. Mitglied · ${b.daysBefore}d vorher</div>
+            ${noteHtml}
+          </div>
+          <div class="probwrap">
+            <span class="pct" style="color:${color}">${pct}%</span>
+            <div class="prob-bar-track"><div class="prob-bar-fill" style="width:${pct}%; background:${color};"></div></div>
+          </div>
+          <div class="chip ${isRisk ? 'risk' : 'confirmed'}">${isRisk ? 'Risiko' : 'Bestätigt'}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // Scoreboard
+  const bookedCount = bookings.length;
+  const expectedNoShow = bookings.reduce((s,b)=> s + (1-b.prob), 0);
+  const extraSlots = Math.floor(0.7 * expectedNoShow); // Sicherheitsfaktor 0.7
+  const available = Math.max(0, (capacity + extraSlots) - bookedCount);
+
+  document.getElementById('scBooked').textContent = String(bookedCount).padStart(2,'0');
+  document.getElementById('scNoShow').textContent = expectedNoShow.toFixed(1);
+  document.getElementById('scExtra').textContent = '+' + extraSlots;
+  document.getElementById('scAvailable').textContent = String(available).padStart(2,'0');
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+/* =========================================================
+   LIVE-VORSCHAU IM FORMULAR
+   ========================================================= */
+function currentFormProfile(){
+  return {
+    months: parseFloat(document.getElementById('inMonths').value) || 0,
+    weight: parseFloat(document.getElementById('inWeight').value) || 0,
+    daysBefore: parseFloat(document.getElementById('inDaysBefore').value) || 0,
+    time: selectedTime,
+    day: document.getElementById('inDay').value,
+    category: document.getElementById('inCategory').value
+  };
+}
+
+function updatePreview(){
+  const prob = predictAttendanceProb(currentFormProfile());
+  const pct = Math.round(prob*100);
+  const bar = document.getElementById('previewBar');
+  const pctEl = document.getElementById('previewPct');
+  const statusEl = document.getElementById('previewStatus');
+  bar.style.width = pct + '%';
+  pctEl.textContent = pct + '%';
+  if(prob < 0.5){
+    bar.style.background = 'var(--coral)';
+    statusEl.style.color = 'var(--coral)';
+    statusEl.textContent = 'Nichtteilnahme wahrscheinlich → Platz freigebbar';
+  } else {
+    bar.style.background = 'var(--teal)';
+    statusEl.style.color = 'var(--teal)';
+    statusEl.textContent = 'Teilnahme wahrscheinlich';
+  }
+}
+
+['inMonths','inWeight','inDaysBefore','inDay','inCategory'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', updatePreview);
+  document.getElementById(id).addEventListener('change', updatePreview);
+});
+
+document.querySelectorAll('.toggle-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedTime = btn.dataset.time;
+    updatePreview();
+  });
+});
+
+document.getElementById('capacityInput').addEventListener('input', render);
+
+/* =========================================================
+   BUCHUNG HINZUFÜGEN
+   ========================================================= */
+document.getElementById('bookBtn').addEventListener('click', ()=>{
+  const nameInput = document.getElementById('inName');
+  const profile = currentFormProfile();
+  profile.name = nameInput.value.trim();
+  addBookingObject(profile);
+  render();
+  nameInput.value = '';
+});
+
+/* =========================================================
+   ANTHROPIC API — kurze Einschätzung pro Buchung
+   ========================================================= */
+// HINWEIS: Dieser Aufruf funktioniert nur innerhalb der Claude.ai-Artefakt-Umgebung,
+// in der ein Anthropic-Konto ohne separaten API-Schlüssel authentifiziert wird.
+// Für einen eigenständigen Betrieb (z. B. via GitHub Pages) muss dieser Aufruf durch
+// einen eigenen Backend-Endpunkt ersetzt werden, der den API-Schlüssel serverseitig
+// hält (siehe README.md, Abschnitt "Produktivbetrieb"). Ohne dieses Backend greift
+// automatisch der lokale Fallback-Text unten.
+const ANTHROPIC_ENDPOINT = "https://api.anthropic.com/v1/messages"; // Platzhalter — in Produktion durch eigenen Backend-Endpunkt ersetzen
+
+async function fetchAiNote(booking){
+  try{
+    const pct = Math.round(booking.prob*100);
+    const prompt = `Ein Fitnessstudio-Buchungssystem hat für ein Mitglied folgende Teilnahmewahrscheinlichkeit berechnet: ${pct}%.
+Merkmale: ${booking.months} Monate Mitgliedschaft, Buchung ${booking.daysBefore} Tage im Voraus, Kurs "${booking.category}" am ${booking.day} (${booking.time}).
+Formuliere GENAU EINEN kurzen Satz (max. 12 Wörter) auf Deutsch als knappe Einschätzung für das Studio-Personal, ob eher mit Teilnahme oder Absage zu rechnen ist und ein möglicher Grund. Kein Vorspann, keine Anführungszeichen, nur der Satz.`;
+
+    const response = await fetch(ANTHROPIC_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+    if(!response.ok) throw new Error("API nicht erreichbar (erwartet außerhalb von Claude.ai)");
+    const data = await response.json();
+    const textBlock = (data.content || []).find(c => c.type === 'text');
+    booking.aiNote = textBlock ? textBlock.text.trim() : 'Keine Einschätzung verfügbar.';
+  } catch(err){
+    // Lokaler Fallback, greift z. B. auf GitHub Pages ohne eigenes Backend
+    booking.aiNote = booking.prob < 0.5
+      ? 'Erhöhtes Absagerisiko laut Modellmerkmalen. (Demo-Fallback, kein API-Backend verbunden)'
+      : 'Stabile Teilnahmehistorie deutet auf Erscheinen hin. (Demo-Fallback, kein API-Backend verbunden)';
+  } finally {
+    booking.aiLoading = false;
+    render();
+  }
+}
+
+/* =========================================================
+   INIT
+   ========================================================= */
+seedProfiles.forEach(p => addBookingObject(p));
+updatePreview();
+render();
+</script>
+</body>
+</html>
